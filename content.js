@@ -114,38 +114,28 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
   // 確認ダイアログを作成
   const dialog = document.createElement('div');
   dialog.className = 'xkuso-confirm-dialog';
-  dialog.style.cssText = 'position: absolute; top: 0; left: 0; right: 0; background-color: rgba(29, 161, 242, 0.9); color: white; padding: 10px; z-index: 9999; display: flex; justify-content: space-between; align-items: center;';
-  
-  // ダイアログのメッセージ
-  const message = document.createElement('div');
-  message.textContent = `"マッチした文字列: ${matchedWord}" このツイートをブロックしますか？`;
-  dialog.appendChild(message);
-  
-  // ボタンコンテナ
-  const buttonContainer = document.createElement('div');
+  dialog.style.cssText = 'position: absolute; bottom: 5px; right: 5px; background-color: rgba(29, 161, 242, 0.9); color: white; padding: 5px; z-index: 9999; display: flex; border-radius: 4px;';
   
   // ブロックボタン
   const blockButton = document.createElement('button');
-  blockButton.textContent = 'ブロック';
-  blockButton.style.cssText = 'margin-right: 10px; padding: 5px 10px; background-color: #e0245e; border: none; color: white; border-radius: 4px; cursor: pointer;';
+  blockButton.textContent = 'Block';
+  blockButton.style.cssText = 'margin-right: 5px; padding: 3px 8px; background-color: #e0245e; border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 12px;';
   blockButton.onclick = function() {
     confirmedTweetIds.add(tweetId);
     blockTweet(tweet, tweetText);
     tweet.removeChild(dialog);
   };
-  buttonContainer.appendChild(blockButton);
+  dialog.appendChild(blockButton);
   
   // キャンセルボタン
   const cancelButton = document.createElement('button');
-  cancelButton.textContent = 'キャンセル';
-  cancelButton.style.cssText = 'padding: 5px 10px; background-color: #657786; border: none; color: white; border-radius: 4px; cursor: pointer;';
+  cancelButton.textContent = 'Cancel';
+  cancelButton.style.cssText = 'padding: 3px 8px; background-color: #657786; border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 12px;';
   cancelButton.onclick = function() {
     tweet.removeChild(dialog);
     tweet.dataset.filtered = 'ignored';
   };
-  buttonContainer.appendChild(cancelButton);
-  
-  dialog.appendChild(buttonContainer);
+  dialog.appendChild(cancelButton);
   
   // ツイートにダイアログを追加
   tweet.style.position = 'relative';
