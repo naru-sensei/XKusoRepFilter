@@ -1,5 +1,5 @@
 // ブロックする文字列のリスト
-let blockWordsList = ['しばらく観察していると'];
+let blockWordsList = ['しばらく観察していると', '紹介したこのブロガー', '彼の指導のもと'];
 // 確認ダイアログを表示するかどうか
 let showConfirmDialog = true;
 // 確認済みのツイートIDを保存するセット

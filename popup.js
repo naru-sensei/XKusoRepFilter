@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
   // デフォルト値を設定
-  const defaultBlockWords = 'しばらく観察していると';
+  const defaultBlockWords = 'しばらく観察していると\n紹介したこのブロガー\n彼の指導のもと';
   const defaultShowConfirmDialog = true;
 
   
