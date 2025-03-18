@@ -237,7 +237,14 @@ function addAnimationStyles() {
     
     @keyframes xkuso-shrink {
       0% { max-height: 1000px; }
-      100% { max-height: 100px; }
+      50% { max-height: 100px; }
+      100% { max-height: 30px; }
+    }
+    
+    @keyframes xkuso-vanish {
+      0% { opacity: 0.5; }
+      90% { opacity: 0.2; }
+      100% { opacity: 0.1; }
     }
     
     @keyframes xkuso-blur {
@@ -257,13 +264,14 @@ function addAnimationStyles() {
     }
     
     .xkuso-blocked-tweet {
-      animation: xkuso-fade-out 0.8s ease forwards, xkuso-shrink 1s ease forwards;
+      animation: xkuso-fade-out 0.8s ease forwards, xkuso-shrink 1.5s ease forwards, xkuso-vanish 2s ease 1.5s forwards;
       overflow: hidden;
       position: relative;
       pointer-events: none;
       border: 1px solid rgba(0, 0, 0, 0.05);
       background-color: rgba(0, 0, 0, 0.02);
       transition: all 0.5s ease;
+      margin-bottom: -20px;
     }
     
     .xkuso-blocked-tweet * {
@@ -378,8 +386,44 @@ function playBlockSound() {
     // 再生
     oscillator.start();
     oscillator.stop(audioContext.currentTime + 0.2);
+    
+    // 2秒後に消滅音を再生
+    setTimeout(() => {
+      playVanishSound();
+    }, 1500);
   } catch (error) {
     console.error('XKusoRepFilter: エフェクト音の再生中にエラーが発生しました', error);
+  }
+}
+
+// 消滅時のエフェクト音を再生する関数
+function playVanishSound() {
+  try {
+    // AudioContextを作成
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // オシレーターを作成
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    // オシレーターの設定（より低い音で消滅感を演出）
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(220, audioContext.currentTime); // A3
+    oscillator.frequency.exponentialRampToValueAtTime(110, audioContext.currentTime + 0.3); // A2
+    
+    // 音量の設定（より小さい音で消滅感を演出）
+    gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+    
+    // 接続
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // 再生
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.error('XKusoRepFilter: 消滅音の再生中にエラーが発生しました', error);
   }
 }
 
