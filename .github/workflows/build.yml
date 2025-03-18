@@ -1,0 +1,109 @@
+name: ビルドとリリース
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Node.jsのセットアップ
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: 依存関係のインストール
+      run: |
+        npm init -y
+        npm install --save-dev @babel/core @babel/preset-env babel-loader webpack webpack-cli zip-webpack-plugin clean-webpack-plugin copy-webpack-plugin
+
+    - name: webpackの設定ファイル作成
+      run: |
+        cat > webpack.config.js << 'EOL'
+        const path = require('path');
+        const ZipPlugin = require('zip-webpack-plugin');
+        const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+        const CopyPlugin = require('copy-webpack-plugin');
+        const package = require('./package.json');
+        const manifest = require('./manifest.json');
+
+        module.exports = {
+          mode: 'production',
+          entry: {
+            background: './background.js',
+            content: './content.js',
+            popup: './popup.js'
+          },
+          output: {
+            path: path.resolve(__dirname, 'dist'),
+            filename: '[name].js'
+          },
+          module: {
+            rules: [
+              {
+                test: /\.js$/,
+                exclude: /node_modules/,
+                use: {
+                  loader: 'babel-loader',
+                  options: {
+                    presets: ['@babel/preset-env']
+                  }
+                }
+              }
+            ]
+          },
+          plugins: [
+            new CleanWebpackPlugin(),
+            new CopyPlugin({
+              patterns: [
+                { from: 'manifest.json', to: '.' },
+                { from: 'popup.html', to: '.' },
+                { from: 'icon.png', to: '.' },
+                { from: 'docs/image.png', to: 'docs/image.png' }
+              ],
+            }),
+            new ZipPlugin({
+              filename: `XKusoRepFilter-v${manifest.version}.zip`
+            })
+          ]
+        };
+        EOL
+
+    - name: ビルド
+      run: npx webpack
+
+    - name: 成果物のアップロード
+      uses: actions/upload-artifact@v3
+      with:
+        name: extension-package
+        path: dist/*.zip
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 成果物のダウンロード
+      uses: actions/download-artifact@v3
+      with:
+        name: extension-package
+        path: ./
+
+    - name: リリースの作成
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ./*.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

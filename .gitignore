@@ -1,0 +1,20 @@
+# ビルド成果物
+dist/
+releases/
+*.zip
+
+# 依存関係
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# OS固有のファイル
+.DS_Store
+Thumbs.db
+
+# エディタ固有のファイル
+.idea/
+.vscode/
+*.swp
+*.swo
