@@ -1,11 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
   // デフォルト値を設定
-  const defaultBlockWords = 'しばらく観察していると';
+  const defaultBlockWords = 'しばらく観察していると\n紹介したこのブロガー\n彼の指導のもと';
   const defaultShowConfirmDialog = true;
+
   
   // UI要素
   const blockWordsTextarea = document.getElementById('blockWords');
   const showConfirmDialogCheckbox = document.getElementById('showConfirmDialog');
+
   const saveButton = document.getElementById('saveButton');
   const statusMessage = document.getElementById('status');
   const formGroups = document.querySelectorAll('.form-group');
@@ -30,6 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const showConfirmDialog = result.showConfirmDialog !== undefined ? result.showConfirmDialog : defaultShowConfirmDialog;
     showConfirmDialogCheckbox.checked = showConfirmDialog;
     
+
+    
     // テキストエリアにフォーカスアニメーション
     blockWordsTextarea.addEventListener('focus', function() {
       this.parentElement.style.transform = 'scale(1.01)';
@@ -51,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const blockWords = blockWordsTextarea.value;
     const showConfirmDialog = showConfirmDialogCheckbox.checked;
+
     
     // 設定を保存
     chrome.storage.sync.set({

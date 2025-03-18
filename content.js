@@ -1,5 +1,5 @@
 // ブロックする文字列のリスト
-let blockWordsList = ['しばらく観察していると'];
+let blockWordsList = ['しばらく観察していると', '紹介したこのブロガー', '彼の指導のもと'];
 // 確認ダイアログを表示するかどうか
 let showConfirmDialog = true;
 // 確認済みのツイートIDを保存するセット
@@ -7,8 +7,6 @@ let confirmedTweetIds = new Set();
 // 自分のIDとフォロワーのIDを保存するセット
 let myAndFollowersIds = new Set();
 
-// ハイライト済みのツイートIDを保存するセット
-let highlightedTweetIds = new Set();
 
 // 設定を読み込む
 function loadSettings() {
@@ -77,31 +75,54 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
   }
 });
 
-// ハイライト用のCSSスタイルを追加
-function addHighlightStyles() {
+// 確認ダイアログ用のCSSスタイルを追加
+function addConfirmDialogStyles() {
   const style = document.createElement('style');
   style.textContent = `
-    article[data-testid="tweet"].xkuso-highlighted-tweet,
-    article[data-testid="tweet"].xkuso-highlighted-tweet > div,
-    article[data-testid="tweet"].xkuso-highlighted-tweet > div > div {
-      background-color: rgba(255, 0, 0, 0.1) !important;
+    .xkuso-confirm-dialog {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 9999;
+      font-size: 14px;
+      max-width: 300px;
     }
-    article[data-testid="tweet"].xkuso-highlighted-tweet {
-      border-left: 3px solid red !important;
-      position: relative;
+    
+    .xkuso-confirm-dialog-buttons {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
     }
-    .xkuso-highlight {
-      background-color: yellow !important;
-      color: red !important;
-      font-weight: bold !important;
+    
+    .xkuso-confirm-dialog-button {
+      margin-left: 8px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .xkuso-confirm-dialog-block {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .xkuso-confirm-dialog-cancel {
+      background-color: #e0e0e0;
     }
   `;
   document.head.appendChild(style);
-  console.log('XKusoRepFilter: ハイライトスタイルを追加しました');
+  console.log('XKusoRepFilter: 確認ダイアログスタイルを追加しました');
 }
 
 // スタイルを追加
-addHighlightStyles();
+addConfirmDialogStyles();
 
 // 定期的に自分とフォロワーのIDを取得
 setInterval(fetchMyAndFollowersIds, 10000);
@@ -200,102 +221,39 @@ function isMyOrFollowersTweet(tweet) {
   return false;
 }
 
-// ツイート内の特定の文字列をハイライトする関数
-function highlightBlockWords(tweet, matchedWord) {
+// 認証済みアカウントかチェックする関数
+function isVerifiedAccount(tweet) {
   try {
-    // すでにハイライト済みの場合はスキップ
-    const tweetId = getTweetId(tweet);
-    if (highlightedTweetIds.has(tweetId)) return;
+    // 認証済みアカウントのマークを探す
+    // 認証済みアカウントは青いチェックマークアイコンが表示される
+    const verifiedBadge = tweet.querySelector('svg[aria-label="認証済みアカウント"]');
+    if (verifiedBadge) {
+      return true;
+    }
     
-    // 先にハイライト済みとしてマークしておく（重複処理防止）
-    highlightedTweetIds.add(tweetId);
+    // 英語表記の場合もチェック
+    const verifiedBadgeEn = tweet.querySelector('svg[aria-label="Verified Account"]');
+    if (verifiedBadgeEn) {
+      return true;
+    }
     
-    // ツイートの背景色を薄い赤色に変更（全体をハイライト）
-    tweet.style.setProperty('background-color', 'rgba(255, 0, 0, 0.1)', 'important');
-    tweet.style.setProperty('border-left', '3px solid red', 'important');
-    // ハイライト用のクラスを追加
-    tweet.classList.add('xkuso-highlighted-tweet');
-    
-    // 子要素にも背景色を適用
-    const divs = tweet.querySelectorAll('div');
-    divs.forEach(div => {
-      div.style.setProperty('background-color', 'rgba(255, 0, 0, 0.1)', 'important');
-    });
-    
-    // テキストノードを探す
-    const textNodes = [];
-    const walker = document.createTreeWalker(tweet, NodeFilter.SHOW_TEXT, null, false);
-    let node;
-    while (node = walker.nextNode()) {
-      if (node.textContent && node.textContent.includes(matchedWord)) {
-        textNodes.push(node);
+    // その他の言語の場合もチェックするため、チェックマークの色で判定
+    const svgElements = tweet.querySelectorAll('svg');
+    for (const svg of svgElements) {
+      // 青いチェックマークを探す
+      const paths = svg.querySelectorAll('path[fill="rgb(29, 155, 240)"]');
+      if (paths.length > 0) {
+        return true;
       }
     }
     
-    // テキストノードが見つからない場合は、全体を再スキャン
-    if (textNodes.length === 0) {
-      // ツイートの内容が変わった可能性があるため、少し待ってから再試行
-      setTimeout(() => {
-        const walker = document.createTreeWalker(tweet, NodeFilter.SHOW_TEXT, null, false);
-        let node;
-        while (node = walker.nextNode()) {
-          if (node.textContent && node.textContent.includes(matchedWord)) {
-            textNodes.push(node);
-          }
-        }
-        processTextNodes(textNodes, matchedWord);
-      }, 200); // 遅延を短縮
-    } else {
-      processTextNodes(textNodes, matchedWord);
-    }
+    return false;
   } catch (error) {
-    console.error('XKusoRepFilter: ハイライト処理中にエラーが発生しました', error);
+    console.error('XKusoRepFilter: 認証済みアカウントチェック中にエラーが発生しました', error);
+    return false;
   }
 }
-  
-// テキストノードを処理する関数
-function processTextNodes(textNodes, matchedWord) {
-  if (!textNodes || textNodes.length === 0) return;
-  
-  textNodes.forEach(textNode => {
-    try {
-      // テキストノードがドキュメントに存在しない場合はスキップ
-      if (!textNode.parentNode) return;
-      
-      const text = textNode.textContent;
-      if (!text || !text.includes(matchedWord)) return;
-      
-      const parts = text.split(matchedWord);
-      
-      if (parts.length > 1) {
-        const fragment = document.createDocumentFragment();
-        
-        for (let i = 0; i < parts.length; i++) {
-          // 通常のテキスト部分を追加
-          if (parts[i]) {
-            fragment.appendChild(document.createTextNode(parts[i]));
-          }
-          
-          // マッチした文字列をハイライトして追加
-          if (i < parts.length - 1) {
-            const highlight = document.createElement('span');
-            highlight.textContent = matchedWord;
-            highlight.style.setProperty('background-color', 'yellow', 'important');
-            highlight.style.setProperty('color', 'red', 'important');
-            highlight.style.setProperty('font-weight', 'bold', 'important');
-            highlight.className = 'xkuso-highlight';
-            fragment.appendChild(highlight);
-          }
-        }
-        
-        // 元のテキストノードをハイライト付きのフラグメントで置き換え
-        textNode.parentNode.replaceChild(fragment, textNode);
-      }
-    } catch (error) {
-      console.error('XKusoRepFilter: テキストノード処理中にエラーが発生しました', error);
-    }
-  });
-}
+
 
 // ツイートをフィルタリングする関数
 function filterTweets() {
@@ -319,12 +277,14 @@ function filterTweets() {
     }
     
     if (matchedWord) {
-      // 自分またはフォロワーのツイートはブロックせずにハイライトする
-      if (isMyOrFollowersTweet(tweet)) {
-        highlightBlockWords(tweet, matchedWord);
-        tweet.dataset.filtered = 'highlighted';
+      // 自分、フォロワー、または認証済みアカウントのツイートはブロックしない
+      if (isMyOrFollowersTweet(tweet) || isVerifiedAccount(tweet)) {
+        tweet.dataset.filtered = 'skipped';
+        if (isVerifiedAccount(tweet)) {
+          console.log('XKusoRepFilter: 認証済みアカウントのツイートをスキップしました');
+        }
       } else {
-        // 自分とフォロワー以外のツイートはブロック対象
+        // 自分、フォロワー、認証済みアカウント以外のツイートはブロック対象
         if (showConfirmDialog) {
           // 確認ダイアログを表示
           showBlockConfirmation(tweet, tweetText, matchedWord);
@@ -334,6 +294,7 @@ function filterTweets() {
         }
       }
     }
+
   });
 }
 
