@@ -167,8 +167,7 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
 
 // 爆発エフェクトを表示する関数
 function createExplosionEffect(tweet) {
-  // ツイートのクローンを作成して爆発エフェクト用に使用
-  const tweetClone = tweet.cloneNode(true);
+  // ツイートの位置とサイズを取得
   const rect = tweet.getBoundingClientRect();
   
   // エフェクトコンテナを作成
@@ -185,80 +184,64 @@ function createExplosionEffect(tweet) {
     pointer-events: none;
   `;
   
-  // 爆発エフェクトの要素を作成
-  const fragments = [];
-  const fragmentCount = 20;
+  // 破片の数を減らし、軽量化
+  const fragmentCount = 10; // 20から10に削減
   const colors = ['#ff0000', '#ff7700', '#ffff00', '#ff9900', '#ff5500'];
   
-  // 破片を作成
+  // CSSアニメーションを使用してパフォーマンスを改善
   for (let i = 0; i < fragmentCount; i++) {
     const fragment = document.createElement('div');
-    const size = Math.random() * 20 + 10;
+    const size = Math.random() * 15 + 5; // サイズを小さく
     const color = colors[Math.floor(Math.random() * colors.length)];
     
-    // ランダムな位置を設定
-    const x = Math.random() * rect.width;
-    const y = Math.random() * rect.height;
+    // ランダムな初期位置
+    const startX = rect.width / 2;
+    const startY = rect.height / 2;
     
+    // ランダムな終了位置
+    const endX = startX + (Math.random() - 0.5) * rect.width * 1.5;
+    const endY = startY + (Math.random() - 0.5) * rect.height * 1.5;
+    
+    // CSSアニメーションを適用
     fragment.style.cssText = `
       position: absolute;
       width: ${size}px;
       height: ${size}px;
       background-color: ${color};
-      left: ${x}px;
-      top: ${y}px;
+      left: ${startX}px;
+      top: ${startY}px;
       border-radius: 50%;
-      box-shadow: 0 0 10px ${color};
+      transform: translate(-50%, -50%);
+      animation: explosion-particle 600ms ease-out forwards;
     `;
     
+    // インラインスタイルでアニメーションを定義
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = `
+      @keyframes explosion-particle {
+        0% {
+          transform: translate(-50%, -50%);
+          opacity: 1;
+        }
+        100% {
+          transform: translate(${endX - startX}px, ${endY - startY}px);
+          opacity: 0;
+        }
+      }
+    `;
+    
+    // スタイルと破片を追加
+    container.appendChild(styleSheet);
     container.appendChild(fragment);
-    fragments.push({
-      element: fragment,
-      x: x,
-      y: y,
-      vx: (Math.random() - 0.5) * 20,
-      vy: (Math.random() - 0.5) * 20,
-      size: size
-    });
   }
   
   // コンテナをページに追加
   document.body.appendChild(container);
   
-  // 爆発アニメーション
-  let startTime = performance.now();
-  const duration = 800; // 0.8秒
-  
-  function animate() {
-    const elapsed = performance.now() - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    
-    // 各破片をアニメーション
-    fragments.forEach(fragment => {
-      fragment.x += fragment.vx * progress;
-      fragment.y += fragment.vy * progress;
-      
-      // 重力効果
-      fragment.y += 5 * progress * progress;
-      
-      // 透明度を変更
-      const opacity = 1 - progress;
-      
-      fragment.element.style.transform = `translate(${fragment.x - fragment.size/2}px, ${fragment.y - fragment.size/2}px)`;
-      fragment.element.style.opacity = opacity;
-    });
-    
-    // アニメーション終了条件
-    if (progress < 1) {
-      requestAnimationFrame(animate);
-    } else {
-      // アニメーション終了時にコンテナを削除
-      container.remove();
-    }
-  }
-  
-  // アニメーション開始
-  requestAnimationFrame(animate);
+  // アニメーション終了後にコンテナを削除
+  setTimeout(() => {
+    container.remove();
+  }, 600); // 0.6秒後に削除
 }
 
 // ツイートをブロックする関数
@@ -274,7 +257,7 @@ function blockTweet(tweet, tweetText) {
         // 処理済みとしてマーク
         tweet.dataset.filtered = 'true';
         console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
-      }, 800); // 0.8秒後に非表示
+      }, 600); // 0.6秒後に非表示（エフェクトの時間に合わせて短縮）
     } catch (error) {
       // エフェクトに失敗した場合は通常の非表示処理
       console.error('XKusoRepFilter: 爆発エフェクトの表示に失敗しました', error);
