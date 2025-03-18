@@ -553,12 +553,43 @@ function isVerifiedAccount(tweet) {
       return true;
     }
     
+    // 新しいX/Twitterの認証マークの検出
+    // 1. 青いチェックマーク (Twitter Blue/X Premium)
+    const blueCheckmark = tweet.querySelector('svg[data-testid="icon-verified"]');
+    if (blueCheckmark) {
+      return true;
+    }
+    
+    // 2. 黄色いチェックマーク (組織)
+    const yellowCheckmark = tweet.querySelector('svg[data-testid="verificationBadge"]');
+    if (yellowCheckmark) {
+      return true;
+    }
+    
+    // 3. グレーのチェックマーク (政府機関)
+    const grayCheckmark = tweet.querySelector('svg[data-testid="verificationBadgeGray"]');
+    if (grayCheckmark) {
+      return true;
+    }
+    
     // その他の言語の場合もチェックするため、チェックマークの色で判定
     const svgElements = tweet.querySelectorAll('svg');
     for (const svg of svgElements) {
       // 青いチェックマークを探す
-      const paths = svg.querySelectorAll('path[fill="rgb(29, 155, 240)"]');
-      if (paths.length > 0) {
+      const bluePaths = svg.querySelectorAll('path[fill="rgb(29, 155, 240)"]');
+      if (bluePaths.length > 0) {
+        return true;
+      }
+      
+      // 黄色いチェックマークを探す
+      const yellowPaths = svg.querySelectorAll('path[fill="rgb(255, 207, 51)"]');
+      if (yellowPaths.length > 0) {
+        return true;
+      }
+      
+      // グレーのチェックマークを探す
+      const grayPaths = svg.querySelectorAll('path[fill="rgb(128, 128, 128)"]');
+      if (grayPaths.length > 0) {
         return true;
       }
     }
