@@ -1,21 +1,26 @@
-# Security Policy
+# セキュリティポリシー
 
-## Supported Versions
+## サポートバージョン
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+現在セキュリティアップデートがサポートされているバージョンは以下の通りです。
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+| バージョン | サポート状況        |
+| ---------- | ------------------ |
+| 1.3.x      | :white_check_mark: |
+| 1.2.x      | :x:                |
+| 1.1.x      | :x:                |
+| < 1.0      | :x:                |
 
-## Reporting a Vulnerability
+## 脆弱性の報告
 
-Use this section to tell people how to report a vulnerability.
+脆弱性を発見した場合は、GitHubのIssueまたはPull Requestで報告してください。
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+報告された脆弱性は確認次第、できるだけ早く対応します。脆弱性が受理された場合は修正が行われ、新しいバージョンがリリースされます。
+
+## セキュリティのベストプラクティス
+
+XKusoRepFilterは以下のセキュリティプラクティスに従っています：
+
+- ユーザーデータはローカルのChrome Storageにのみ保存され、外部サーバーには送信されません
+- 拡張機能は必要最小限の権限のみを要求します
+- コードは定期的に更新され、依存関係の脆弱性が修正されます
