@@ -7,6 +7,9 @@ let confirmedTweetIds = new Set();
 // 自分のIDとフォロワーのIDを保存するセット
 let myAndFollowersIds = new Set();
 
+// ハイライト済みのツイートIDを保存するセット
+let highlightedTweetIds = new Set();
+
 // 設定を読み込む
 function loadSettings() {
   chrome.storage.sync.get(['blockWords', 'showConfirmDialog'], function(result) {
@@ -175,6 +178,56 @@ function isMyOrFollowersTweet(tweet) {
   return false;
 }
 
+// ツイート内の特定の文字列をハイライトする関数
+function highlightBlockWords(tweet, matchedWord) {
+  // すでにハイライト済みの場合はスキップ
+  const tweetId = getTweetId(tweet);
+  if (highlightedTweetIds.has(tweetId)) return;
+  
+  // テキストノードを探す
+  const textNodes = [];
+  const walker = document.createTreeWalker(tweet, NodeFilter.SHOW_TEXT, null, false);
+  let node;
+  while (node = walker.nextNode()) {
+    if (node.textContent.includes(matchedWord)) {
+      textNodes.push(node);
+    }
+  }
+  
+  // テキストノード内のマッチした文字列をハイライト
+  textNodes.forEach(textNode => {
+    const text = textNode.textContent;
+    const parts = text.split(matchedWord);
+    
+    if (parts.length > 1) {
+      const fragment = document.createDocumentFragment();
+      
+      for (let i = 0; i < parts.length; i++) {
+        // 通常のテキスト部分を追加
+        if (parts[i]) {
+          fragment.appendChild(document.createTextNode(parts[i]));
+        }
+        
+        // マッチした文字列をハイライトして追加
+        if (i < parts.length - 1) {
+          const highlight = document.createElement('span');
+          highlight.textContent = matchedWord;
+          highlight.style.backgroundColor = 'yellow';
+          highlight.style.color = 'red';
+          highlight.style.fontWeight = 'bold';
+          fragment.appendChild(highlight);
+        }
+      }
+      
+      // 元のテキストノードをハイライト付きのフラグメントで置き換え
+      textNode.parentNode.replaceChild(fragment, textNode);
+    }
+  });
+  
+  // ハイライト済みとしてマーク
+  highlightedTweetIds.add(tweetId);
+}
+
 // ツイートをフィルタリングする関数
 function filterTweets() {
   // タイムラインの各ツイート要素を取得
@@ -183,12 +236,6 @@ function filterTweets() {
   tweets.forEach(tweet => {
     // すでに処理済みの場合はスキップ
     if (tweet.dataset.filtered) return;
-    
-    // 自分またはフォロワーのツイートはブロックしない
-    if (isMyOrFollowersTweet(tweet)) {
-      tweet.dataset.filtered = 'skipped';
-      return;
-    }
     
     // ツイートのテキスト内容を取得
     const tweetText = tweet.textContent || '';
@@ -203,12 +250,19 @@ function filterTweets() {
     }
     
     if (matchedWord) {
-      if (showConfirmDialog) {
-        // 確認ダイアログを表示
-        showBlockConfirmation(tweet, tweetText, matchedWord);
+      // 自分またはフォロワーのツイートはブロックせずにハイライトする
+      if (isMyOrFollowersTweet(tweet)) {
+        highlightBlockWords(tweet, matchedWord);
+        tweet.dataset.filtered = 'highlighted';
       } else {
-        // 確認なしでブロック
-        blockTweet(tweet, tweetText);
+        // 自分とフォロワー以外のツイートはブロック対象
+        if (showConfirmDialog) {
+          // 確認ダイアログを表示
+          showBlockConfirmation(tweet, tweetText, matchedWord);
+        } else {
+          // 確認なしでブロック
+          blockTweet(tweet, tweetText);
+        }
       }
     }
   });
