@@ -255,21 +255,6 @@ function isVerifiedAccount(tweet) {
 }
 
 
-
-// 投稿者がnecobutの場合にのみYellowHage Modeを適用する
-function applyYellowHageMode(tweet) {
-  try {
-    const userLink = tweet.querySelector('a[href^="/necobut"]');
-    if (userLink) {
-      tweet.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
-      tweet.style.borderLeft = '3px solid red';
-      console.log('XKusoRepFilter: YellowHage Mode 適用', userLink.getAttribute('href'));
-    }
-  } catch (error) {
-    console.error('XKusoRepFilter: YellowHage Mode 適用中にエラーが発生しました', error);
-  }
-}
-
 // ツイートをフィルタリングする関数
 function filterTweets() {
   // タイムラインの各ツイート要素を取得
@@ -309,7 +294,7 @@ function filterTweets() {
         }
       }
     }
-    applyYellowHageMode(tweet); // YellowHage Mode を適用
+
   });
 }
 
