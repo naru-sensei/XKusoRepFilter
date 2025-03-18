@@ -137,10 +137,13 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
   const blockButton = document.createElement('button');
   blockButton.textContent = 'Block';
   blockButton.style.cssText = 'margin-right: 5px; padding: 3px 8px; background-color: #e0245e; border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 12px;';
-  blockButton.onclick = function() {
+  blockButton.onclick = function(e) {
+    e.stopPropagation(); // イベントの伝播を停止
     confirmedTweetIds.add(tweetId);
     blockTweet(tweet, tweetText);
-    tweet.removeChild(dialog);
+    if (tweet.contains(dialog)) {
+      tweet.removeChild(dialog);
+    }
   };
   dialog.appendChild(blockButton);
   
@@ -148,8 +151,11 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
   const cancelButton = document.createElement('button');
   cancelButton.textContent = 'Cancel';
   cancelButton.style.cssText = 'padding: 3px 8px; background-color: #657786; border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 12px;';
-  cancelButton.onclick = function() {
-    tweet.removeChild(dialog);
+  cancelButton.onclick = function(e) {
+    e.stopPropagation(); // イベントの伝播を停止
+    if (tweet.contains(dialog)) {
+      tweet.removeChild(dialog);
+    }
     tweet.dataset.filtered = 'ignored';
   };
   dialog.appendChild(cancelButton);
@@ -288,6 +294,10 @@ function highlightBlockWords(tweet, matchedWord) {
     
     // 先にハイライト済みとしてマークしておく（重複処理防止）
     highlightedTweetIds.add(tweetId);
+    
+    // ツイートの背景色を変更（全体をハイライト）
+    tweet.style.backgroundColor = 'rgba(255, 255, 0, 0.2)';
+    tweet.style.borderLeft = '3px solid red';
     
     // テキストノードを探す
     const textNodes = [];
