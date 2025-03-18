@@ -88,9 +88,14 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
 function addHighlightStyles() {
   const style = document.createElement('style');
   style.textContent = `
-    .xkuso-highlighted-tweet {
+    article[data-testid="tweet"].xkuso-highlighted-tweet,
+    article[data-testid="tweet"].xkuso-highlighted-tweet > div,
+    article[data-testid="tweet"].xkuso-highlighted-tweet > div > div {
       background-color: rgba(255, 0, 0, 0.1) !important;
+    }
+    article[data-testid="tweet"].xkuso-highlighted-tweet {
       border-left: 3px solid red !important;
+      position: relative;
     }
     .xkuso-highlight {
       background-color: yellow !important;
@@ -323,8 +328,14 @@ function highlightBlockWords(tweet, matchedWord) {
     // ツイートの背景色を薄い赤色に変更（全体をハイライト）
     tweet.style.setProperty('background-color', 'rgba(255, 0, 0, 0.1)', 'important');
     tweet.style.setProperty('border-left', '3px solid red', 'important');
-    // ハイライト用のクラスも追加
+    // ハイライト用のクラスを追加
     tweet.classList.add('xkuso-highlighted-tweet');
+    
+    // 子要素にも背景色を適用
+    const divs = tweet.querySelectorAll('div');
+    divs.forEach(div => {
+      div.style.setProperty('background-color', 'rgba(255, 0, 0, 0.1)', 'important');
+    });
     
     // テキストノードを探す
     const textNodes = [];
