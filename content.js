@@ -152,13 +152,99 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
   tweet.appendChild(dialog);
 }
 
+// 爆発エフェクトを表示する関数
+function createExplosionEffect(tweet) {
+  // ツイートの位置とサイズを取得
+  const rect = tweet.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  
+  // エフェクトのコンテナを作成
+  const container = document.createElement('div');
+  container.className = 'xkuso-explosion-container';
+  container.style.cssText = 'position: fixed; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10000;';
+  document.body.appendChild(container);
+  
+  // パーティクルの数
+  const particleCount = 50;
+  const colors = ['#ff0000', '#ff7700', '#ffff00', '#ff9900', '#ff5500'];
+  
+  // パーティクルを作成
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'xkuso-explosion-particle';
+    
+    // ランダムなサイズ（5〜15px）
+    const size = Math.random() * 10 + 5;
+    
+    // ランダムな色
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    
+    // パーティクルのスタイル
+    particle.style.cssText = `
+      position: absolute;
+      width: ${size}px;
+      height: ${size}px;
+      background-color: ${color};
+      border-radius: 50%;
+      left: ${centerX}px;
+      top: ${centerY}px;
+      opacity: 1;
+      transform: translate(-50%, -50%);
+    `;
+    
+    // コンテナに追加
+    container.appendChild(particle);
+    
+    // ランダムな方向と速度
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 10 + 5;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed;
+    
+    // アニメーション
+    const startTime = performance.now();
+    const animate = function(time) {
+      const elapsed = time - startTime;
+      const duration = 1000; // 1秒間
+      
+      if (elapsed < duration) {
+        const progress = elapsed / duration;
+        const x = centerX + vx * progress * 20; // 移動距離を調整
+        const y = centerY + vy * progress * 20 + 20 * progress * progress; // 重力効果
+        const opacity = 1 - progress;
+        
+        particle.style.left = `${x}px`;
+        particle.style.top = `${y}px`;
+        particle.style.opacity = opacity;
+        
+        requestAnimationFrame(animate);
+      } else {
+        particle.remove();
+        
+        // すべてのパーティクルが消えたらコンテナも削除
+        if (container.children.length === 0) {
+          container.remove();
+        }
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }
+}
+
 // ツイートをブロックする関数
 function blockTweet(tweet, tweetText) {
-  // ツイートを非表示にする
-  tweet.style.display = 'none';
-  // 処理済みとしてマーク
-  tweet.dataset.filtered = 'true';
-  console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
+  // 爆発エフェクトを表示
+  createExplosionEffect(tweet);
+  
+  // ツイートを非表示にする（エフェクト後に少し遅延）
+  setTimeout(() => {
+    tweet.style.display = 'none';
+    // 処理済みとしてマーク
+    tweet.dataset.filtered = 'true';
+    console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
+  }, 500); // 0.5秒後に非表示
 }
 
 // ツイートが自分またはフォロワーのものかチェックする関数
