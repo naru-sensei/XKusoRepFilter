@@ -197,49 +197,50 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
 
 // ツイートをブロックする関数
 function blockTweet(tweet, tweetText) {
-  // ユニークなクラス名を生成
-  const dimClass = 'xkuso-dim-tweet-' + Math.random().toString(36).substring(2, 8);
-  
-  // ツイートにクラスを追加
-  tweet.classList.add(dimClass);
-  
-  // スタイル要素を作成
-  const style = document.createElement('style');
-  style.innerHTML = `
-    .${dimClass} {
-      opacity: 0.3 !important;
-      filter: grayscale(100%) !important;
-      color: #888 !important;
-      background-color: rgba(0, 0, 0, 0.02) !important;
-      border: 1px solid rgba(0, 0, 0, 0.05) !important;
-      pointer-events: none !important;
-      transition: opacity 0.3s ease !important;
-    }
+  try {
+    // ツイートの内容を保存
+    const tweetContent = tweet.innerHTML;
     
-    .${dimClass} * {
-      color: #888 !important;
-      opacity: 0.3 !important;
-    }
+    // ツイートの元の高さを保存
+    const originalHeight = tweet.offsetHeight;
     
-    .${dimClass} img, .${dimClass} video {
-      filter: grayscale(100%) opacity(30%) !important;
-    }
+    // ツイートの内容を空にして高さを小さくする
+    tweet.innerHTML = `<div style="height: 20px; background-color: #f0f0f0; margin: 5px 0; border-radius: 4px; font-size: 10px; color: #888; padding: 2px 5px; text-align: center;">ブロックされたツイート</div>`;
     
-    .${dimClass} svg {
-      opacity: 0.3 !important;
-      filter: grayscale(100%) !important;
-    }
-  `;
-  
-  // スタイルをドキュメントに追加
-  document.head.appendChild(style);
-  
-  // インラインスタイルも設定
-  tweet.style.cssText += 'opacity: 0.3 !important; filter: grayscale(100%) !important; color: #888 !important;';
-  
-  // 処理済みとしてマーク
-  tweet.dataset.filtered = 'true';
-  console.log('XKusoRepFilter: ツイートを薄く表示しました', tweetText);
+    // 直接スタイルを適用
+    tweet.style.maxHeight = '30px';
+    tweet.style.minHeight = '30px';
+    tweet.style.overflow = 'hidden';
+    tweet.style.backgroundColor = '#f9f9f9';
+    tweet.style.border = '1px solid #eee';
+    tweet.style.margin = '5px 0';
+    tweet.style.padding = '5px';
+    tweet.style.borderRadius = '8px';
+    tweet.style.pointerEvents = 'none';
+    
+    // クリックイベントを無効化
+    const disableClicks = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      return false;
+    };
+    
+    tweet.addEventListener('click', disableClicks, true);
+    tweet.addEventListener('mousedown', disableClicks, true);
+    tweet.addEventListener('mouseup', disableClicks, true);
+    
+    // 処理済みとしてマーク
+    tweet.dataset.filtered = 'true';
+    tweet.dataset.originalContent = encodeURIComponent(tweetContent);
+    
+    console.log('XKusoRepFilter: ツイートを小さく表示しました', tweetText);
+  } catch (error) {
+    console.error('XKusoRepFilter: ツイートのスタイル変更中にエラーが発生しました', error);
+    
+    // エラーが発生した場合は当初の方法で非表示にする
+    tweet.style.display = 'none';
+    tweet.dataset.filtered = 'true';
+  }
 }
 
 // ツイートが自分またはフォロワーのものかチェックする関数
