@@ -197,11 +197,28 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
 
 // ツイートをブロックする関数
 function blockTweet(tweet, tweetText) {
-  // ツイートを非表示
-  tweet.style.display = 'none';
+  // ツイートのフォントを薄く表示
+  tweet.style.opacity = '0.3';
+  tweet.style.color = '#888';
+  
+  // ツイート内のすべての要素にスタイルを適用
+  const allElements = tweet.querySelectorAll('*');
+  allElements.forEach(element => {
+    element.style.color = 'inherit';
+  });
+  
+  // ツイートの背景色を変更
+  tweet.style.backgroundColor = 'rgba(0, 0, 0, 0.02)';
+  
+  // ボーダーを薄く表示
+  tweet.style.border = '1px solid rgba(0, 0, 0, 0.05)';
+  
+  // クリックやインタラクションを無効化
+  tweet.style.pointerEvents = 'none';
+  
   // 処理済みとしてマーク
   tweet.dataset.filtered = 'true';
-  console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
+  console.log('XKusoRepFilter: ツイートを薄く表示しました', tweetText);
 }
 
 // ツイートが自分またはフォロワーのものかチェックする関数
