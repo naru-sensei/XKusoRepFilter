@@ -91,8 +91,26 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // バージョン情報を表示
   const manifestData = chrome.runtime.getManifest();
-  const footerVersion = document.querySelector('.footer p');
-  if (footerVersion && manifestData.version) {
-    footerVersion.textContent = `XKusoRepFilter v${manifestData.version}`;
+  const versionElement = document.getElementById('version');
+  if (versionElement && manifestData.version) {
+    versionElement.textContent = `XKusoRepFilter v${manifestData.version}`;
+    
+    // バージョン表示にアニメーション効果を追加
+    versionElement.style.opacity = '0';
+    versionElement.style.transform = 'translateY(5px)';
+    
+    setTimeout(() => {
+      versionElement.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      versionElement.style.opacity = '1';
+      versionElement.style.transform = 'translateY(0)';
+    }, 500);
+    
+    // クリックでバージョン情報のアニメーション
+    versionElement.addEventListener('click', function() {
+      this.style.transform = 'scale(1.1)';
+      setTimeout(() => {
+        this.style.transform = 'scale(1)';
+      }, 300);
+    });
   }
 });
