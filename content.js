@@ -97,6 +97,7 @@ function addHighlightStyles() {
     }
   `;
   document.head.appendChild(style);
+  console.log('XKusoRepFilter: ハイライトスタイルを追加しました');
 }
 
 // スタイルを追加
@@ -145,6 +146,9 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
     blockTweet(tweet, tweetText);
     return;
   }
+
+  // 自分またはフォロワーのツイートの場合は何もしない
+  if (isMyOrFollowersTweet(tweet)) return;
   
   // 確認ダイアログを作成
   const dialog = document.createElement('div');
@@ -154,7 +158,7 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
   // ブロックボタン
   const blockButton = document.createElement('button');
   blockButton.textContent = 'Block';
-  blockButton.style.cssText = 'margin-right: 5px; padding: 3px 8px; background-color: #e0245e; border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 12px;';
+  blockButton.style.cssText = 'margin-right: 5px; padding: 12px 24px; background-color: #e0245e; border: none; color: white; border-radius: 9999px; cursor: pointer; font-size: 14px; font-weight: bold;';
   blockButton.onclick = function(e) {
     e.stopPropagation(); // イベントの伝播を停止
     confirmedTweetIds.add(tweetId);
@@ -165,25 +169,10 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
   };
   dialog.appendChild(blockButton);
   
-  // キャンセルボタン
-  const cancelButton = document.createElement('button');
-  cancelButton.textContent = 'Cancel';
-  cancelButton.style.cssText = 'padding: 3px 8px; background-color: #657786; border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 12px;';
-  cancelButton.onclick = function(e) {
-    e.stopPropagation(); // イベントの伝播を停止
-    if (tweet.contains(dialog)) {
-      tweet.removeChild(dialog);
-    }
-    tweet.dataset.filtered = 'ignored';
-  };
-  dialog.appendChild(cancelButton);
-  
   // ツイートにダイアログを追加
   tweet.style.position = 'relative';
   tweet.appendChild(dialog);
 }
-
-
 
 // ツイートをブロックする関数
 function blockTweet(tweet, tweetText) {
@@ -255,7 +244,7 @@ function highlightBlockWords(tweet, matchedWord) {
           }
         }
         processTextNodes(textNodes, matchedWord);
-      }, 500);
+      }, 200); // 遅延を短縮
     } else {
       processTextNodes(textNodes, matchedWord);
     }
