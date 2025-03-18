@@ -200,9 +200,20 @@
 
     .footer {
       margin-top: 20px;
-      font-size: 12px;
-      color: #71767b;
+      font-size: 13px;
+      color: var(--primary-color);
       text-align: center;
+      padding: 8px;
+      border-top: 1px solid var(--border-color);
+    }
+    
+    #version {
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    #version:hover {
+      transform: scale(1.05);
     }
   </style>
 </head>
@@ -235,7 +246,7 @@
   <div id="status" class="status">設定を保存しました！</div>
 
   <div class="footer">
-    <p>XKusoRepFilter v1.2.2</p>
+    <p id="version">XKusoRepFilter v1.4.0</p>
   </div>
 
   <script src="popup.js"></script>
