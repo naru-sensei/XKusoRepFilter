@@ -2,7 +2,7 @@
 
 X（旧Twitter）で特定の文字列「しばらく観察していると」などを含む投稿をブロックするChrome拡張機能です。
 
-![alt text](docs/image.png)
+![alt text](image.png)
 
 ## 機能
 
