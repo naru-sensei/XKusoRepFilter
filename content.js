@@ -300,8 +300,8 @@ function highlightBlockWords(tweet, matchedWord) {
     // 先にハイライト済みとしてマークしておく（重複処理防止）
     highlightedTweetIds.add(tweetId);
     
-    // ツイートの背景色を変更（全体をハイライト）
-    tweet.style.backgroundColor = 'rgba(255, 255, 0, 0.2)';
+    // ツイートの背景色を薄い赤色に変更（全体をハイライト）
+    tweet.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
     tweet.style.borderLeft = '3px solid red';
     
     // テキストノードを探す
