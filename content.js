@@ -154,6 +154,28 @@ function getTweetId(tweet) {
   return uniqueId;
 }
 
+// ツイートを確認前に50%暗くする関数
+function dimTweetBeforeConfirmation(tweet) {
+  try {
+    // ツイートのスタイルを直接変更
+    tweet.style.filter = 'brightness(0.5)';
+    tweet.style.transition = 'filter 0.3s ease';
+    
+    // ツイート内のすべての要素にスタイルを適用
+    const allElements = tweet.querySelectorAll('*');
+    allElements.forEach(element => {
+      element.style.transition = 'filter 0.3s ease';
+    });
+    
+    // 処理済みとしてマーク
+    tweet.dataset.dimmed = 'true';
+    
+    console.log('XKusoRepFilter: ツイートを50%暗くしました');
+  } catch (error) {
+    console.error('XKusoRepFilter: ツイートのスタイル変更中にエラーが発生しました', error);
+  }
+}
+
 // 確認ダイアログを表示する関数
 function showBlockConfirmation(tweet, tweetText, matchedWord) {
   // すでに確認ダイアログが表示されている場合は何もしない
@@ -170,6 +192,9 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
 
   // 自分またはフォロワーのツイートの場合は何もしない
   if (isMyOrFollowersTweet(tweet)) return;
+  
+  // ツイートを50%暗くする
+  dimTweetBeforeConfirmation(tweet);
   
   // 確認ダイアログを作成
   const dialog = document.createElement('div');
@@ -204,19 +229,34 @@ function blockTweet(tweet, tweetText) {
     // ツイートの元の高さを保存
     const originalHeight = tweet.offsetHeight;
     
-    // ツイートの内容を空にして高さを小さくする
-    tweet.innerHTML = `<div style="height: 20px; background-color: #f0f0f0; margin: 5px 0; border-radius: 4px; font-size: 10px; color: #888; padding: 2px 5px; text-align: center;">ブロックされたツイート</div>`;
-    
-    // 直接スタイルを適用
-    tweet.style.maxHeight = '30px';
-    tweet.style.minHeight = '30px';
-    tweet.style.overflow = 'hidden';
-    tweet.style.backgroundColor = '#f9f9f9';
-    tweet.style.border = '1px solid #eee';
-    tweet.style.margin = '5px 0';
-    tweet.style.padding = '5px';
-    tweet.style.borderRadius = '8px';
+    // ツイートの内容は維持しながら、表示を20%に暗くする
+    tweet.style.filter = 'brightness(0.2)';
+    tweet.style.transition = 'filter 0.3s ease';
+    tweet.style.opacity = '0.8';
+    tweet.style.backgroundColor = 'rgba(0, 0, 0, 0.02)';
+    tweet.style.border = '1px solid rgba(0, 0, 0, 0.05)';
     tweet.style.pointerEvents = 'none';
+    tweet.style.maxHeight = '100px';
+    tweet.style.overflow = 'hidden';
+    
+    // ツイート内のすべての要素にスタイルを適用
+    const allElements = tweet.querySelectorAll('*');
+    allElements.forEach(element => {
+      element.style.filter = 'grayscale(100%)';
+      element.style.transition = 'filter 0.3s ease';
+    });
+    
+    // ブロックラベルを追加
+    const blockLabel = document.createElement('div');
+    blockLabel.innerHTML = 'ブロックされたツイート';
+    blockLabel.style.cssText = 'position: absolute; top: 0; left: 0; right: 0; background-color: rgba(0, 0, 0, 0.7); color: white; padding: 2px 5px; font-size: 10px; text-align: center; z-index: 999;';
+    
+    // 相対配置のための設定
+    if (getComputedStyle(tweet).position === 'static') {
+      tweet.style.position = 'relative';
+    }
+    
+    tweet.appendChild(blockLabel);
     
     // クリックイベントを無効化
     const disableClicks = (e) => {
@@ -233,7 +273,7 @@ function blockTweet(tweet, tweetText) {
     tweet.dataset.filtered = 'true';
     tweet.dataset.originalContent = encodeURIComponent(tweetContent);
     
-    console.log('XKusoRepFilter: ツイートを小さく表示しました', tweetText);
+    console.log('XKusoRepFilter: ツイートを20%の明るさに表示しました', tweetText);
   } catch (error) {
     console.error('XKusoRepFilter: ツイートのスタイル変更中にエラーが発生しました', error);
     
