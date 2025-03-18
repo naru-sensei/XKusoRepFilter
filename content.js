@@ -84,6 +84,26 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
   }
 });
 
+// ハイライト用のCSSスタイルを追加
+function addHighlightStyles() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .xkuso-highlighted-tweet {
+      background-color: rgba(255, 0, 0, 0.1) !important;
+      border-left: 3px solid red !important;
+    }
+    .xkuso-highlight {
+      background-color: yellow !important;
+      color: red !important;
+      font-weight: bold !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// スタイルを追加
+addHighlightStyles();
+
 // 定期的に自分とフォロワーのIDを取得
 setInterval(fetchMyAndFollowersIds, 10000);
 // 初回実行
@@ -301,8 +321,10 @@ function highlightBlockWords(tweet, matchedWord) {
     highlightedTweetIds.add(tweetId);
     
     // ツイートの背景色を薄い赤色に変更（全体をハイライト）
-    tweet.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
-    tweet.style.borderLeft = '3px solid red';
+    tweet.style.setProperty('background-color', 'rgba(255, 0, 0, 0.1)', 'important');
+    tweet.style.setProperty('border-left', '3px solid red', 'important');
+    // ハイライト用のクラスも追加
+    tweet.classList.add('xkuso-highlighted-tweet');
     
     // テキストノードを探す
     const textNodes = [];
