@@ -157,15 +157,13 @@ function getTweetId(tweet) {
 // ツイートを確認前に50%暗くする関数
 function dimTweetBeforeConfirmation(tweet) {
   try {
-    // ツイートのスタイルを直接変更
-    tweet.style.filter = 'brightness(0.5)';
-    tweet.style.transition = 'filter 0.3s ease';
+    // すでに暗くなっている場合は何もしない
+    if (tweet.classList.contains('xkuso-dimmed-tweet') || tweet.dataset.dimmed === 'true') {
+      return;
+    }
     
-    // ツイート内のすべての要素にスタイルを適用
-    const allElements = tweet.querySelectorAll('*');
-    allElements.forEach(element => {
-      element.style.transition = 'filter 0.3s ease';
-    });
+    // クラスを追加して明るさを50%に設定
+    tweet.classList.add('xkuso-dimmed-tweet');
     
     // 処理済みとしてマーク
     tweet.dataset.dimmed = 'true';
@@ -224,6 +222,13 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
 function addAnimationStyles() {
   const styleElement = document.createElement('style');
   styleElement.textContent = `
+    /* キーワード含有時のスタイル (50%明るさ) */
+    .xkuso-dimmed-tweet {
+      filter: brightness(0.5) !important;
+      transition: filter 0.3s ease;
+    }
+    
+    /* ブロック後のアニメーション (20%明るさ) */
     @keyframes xkuso-fade-out {
       0% { opacity: 1; transform: scale(1); filter: brightness(0.5); }
       50% { opacity: 0.7; transform: scale(0.98); filter: brightness(0.3); }
@@ -291,6 +296,11 @@ addAnimationStyles();
 // ツイートをブロックする関数
 function blockTweet(tweet, tweetText) {
   try {
+    // すでにブロック済みの場合は何もしない
+    if (tweet.classList.contains('xkuso-blocked-tweet') || tweet.dataset.filtered === 'true') {
+      return;
+    }
+    
     // ツイートの内容を保存
     const tweetContent = tweet.innerHTML;
     
@@ -302,7 +312,10 @@ function blockTweet(tweet, tweetText) {
       tweet.style.position = 'relative';
     }
     
-    // アニメーションクラスを追加
+    // 確認前に追加されたクラスを削除
+    tweet.classList.remove('xkuso-dimmed-tweet');
+    
+    // ブロック時のアニメーションクラスを追加
     tweet.classList.add('xkuso-blocked-tweet');
     
     // ブロックラベルを追加
