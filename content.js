@@ -197,24 +197,45 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
 
 // ツイートをブロックする関数
 function blockTweet(tweet, tweetText) {
-  // ツイートのフォントを薄く表示
-  tweet.style.opacity = '0.3';
-  tweet.style.color = '#888';
+  // ユニークなクラス名を生成
+  const dimClass = 'xkuso-dim-tweet-' + Math.random().toString(36).substring(2, 8);
   
-  // ツイート内のすべての要素にスタイルを適用
-  const allElements = tweet.querySelectorAll('*');
-  allElements.forEach(element => {
-    element.style.color = 'inherit';
-  });
+  // ツイートにクラスを追加
+  tweet.classList.add(dimClass);
   
-  // ツイートの背景色を変更
-  tweet.style.backgroundColor = 'rgba(0, 0, 0, 0.02)';
+  // スタイル要素を作成
+  const style = document.createElement('style');
+  style.innerHTML = `
+    .${dimClass} {
+      opacity: 0.3 !important;
+      filter: grayscale(100%) !important;
+      color: #888 !important;
+      background-color: rgba(0, 0, 0, 0.02) !important;
+      border: 1px solid rgba(0, 0, 0, 0.05) !important;
+      pointer-events: none !important;
+      transition: opacity 0.3s ease !important;
+    }
+    
+    .${dimClass} * {
+      color: #888 !important;
+      opacity: 0.3 !important;
+    }
+    
+    .${dimClass} img, .${dimClass} video {
+      filter: grayscale(100%) opacity(30%) !important;
+    }
+    
+    .${dimClass} svg {
+      opacity: 0.3 !important;
+      filter: grayscale(100%) !important;
+    }
+  `;
   
-  // ボーダーを薄く表示
-  tweet.style.border = '1px solid rgba(0, 0, 0, 0.05)';
+  // スタイルをドキュメントに追加
+  document.head.appendChild(style);
   
-  // クリックやインタラクションを無効化
-  tweet.style.pointerEvents = 'none';
+  // インラインスタイルも設定
+  tweet.style.cssText += 'opacity: 0.3 !important; filter: grayscale(100%) !important; color: #888 !important;';
   
   // 処理済みとしてマーク
   tweet.dataset.filtered = 'true';
