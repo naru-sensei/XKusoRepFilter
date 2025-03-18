@@ -384,9 +384,9 @@ function processTextNodes(textNodes, matchedWord) {
           if (i < parts.length - 1) {
             const highlight = document.createElement('span');
             highlight.textContent = matchedWord;
-            highlight.style.backgroundColor = 'yellow';
-            highlight.style.color = 'red';
-            highlight.style.fontWeight = 'bold';
+            highlight.style.setProperty('background-color', 'yellow', 'important');
+            highlight.style.setProperty('color', 'red', 'important');
+            highlight.style.setProperty('font-weight', 'bold', 'important');
             highlight.className = 'xkuso-highlight';
             fragment.appendChild(highlight);
           }
