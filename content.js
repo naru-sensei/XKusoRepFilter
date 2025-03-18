@@ -167,98 +167,120 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
 
 // 爆発エフェクトを表示する関数
 function createExplosionEffect(tweet) {
-  // ツイートの位置とサイズを取得
+  // ツイートのクローンを作成して爆発エフェクト用に使用
+  const tweetClone = tweet.cloneNode(true);
   const rect = tweet.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
   
-  // エフェクトのコンテナを作成
+  // エフェクトコンテナを作成
   const container = document.createElement('div');
   container.className = 'xkuso-explosion-container';
-  container.style.cssText = 'position: fixed; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10000;';
-  document.body.appendChild(container);
+  container.style.cssText = `
+    position: fixed;
+    left: ${rect.left}px;
+    top: ${rect.top}px;
+    width: ${rect.width}px;
+    height: ${rect.height}px;
+    z-index: 10000;
+    overflow: hidden;
+    pointer-events: none;
+  `;
   
-  // パーティクルの数
-  const particleCount = 50;
+  // 爆発エフェクトの要素を作成
+  const fragments = [];
+  const fragmentCount = 20;
   const colors = ['#ff0000', '#ff7700', '#ffff00', '#ff9900', '#ff5500'];
   
-  // パーティクルを作成
-  for (let i = 0; i < particleCount; i++) {
-    const particle = document.createElement('div');
-    particle.className = 'xkuso-explosion-particle';
-    
-    // ランダムなサイズ（5〜15px）
-    const size = Math.random() * 10 + 5;
-    
-    // ランダムな色
+  // 破片を作成
+  for (let i = 0; i < fragmentCount; i++) {
+    const fragment = document.createElement('div');
+    const size = Math.random() * 20 + 10;
     const color = colors[Math.floor(Math.random() * colors.length)];
     
-    // パーティクルのスタイル
-    particle.style.cssText = `
+    // ランダムな位置を設定
+    const x = Math.random() * rect.width;
+    const y = Math.random() * rect.height;
+    
+    fragment.style.cssText = `
       position: absolute;
       width: ${size}px;
       height: ${size}px;
       background-color: ${color};
+      left: ${x}px;
+      top: ${y}px;
       border-radius: 50%;
-      left: ${centerX}px;
-      top: ${centerY}px;
-      opacity: 1;
-      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px ${color};
     `;
     
-    // コンテナに追加
-    container.appendChild(particle);
-    
-    // ランダムな方向と速度
-    const angle = Math.random() * Math.PI * 2;
-    const speed = Math.random() * 10 + 5;
-    const vx = Math.cos(angle) * speed;
-    const vy = Math.sin(angle) * speed;
-    
-    // アニメーション
-    const startTime = performance.now();
-    const animate = function(time) {
-      const elapsed = time - startTime;
-      const duration = 1000; // 1秒間
-      
-      if (elapsed < duration) {
-        const progress = elapsed / duration;
-        const x = centerX + vx * progress * 20; // 移動距離を調整
-        const y = centerY + vy * progress * 20 + 20 * progress * progress; // 重力効果
-        const opacity = 1 - progress;
-        
-        particle.style.left = `${x}px`;
-        particle.style.top = `${y}px`;
-        particle.style.opacity = opacity;
-        
-        requestAnimationFrame(animate);
-      } else {
-        particle.remove();
-        
-        // すべてのパーティクルが消えたらコンテナも削除
-        if (container.children.length === 0) {
-          container.remove();
-        }
-      }
-    };
-    
-    requestAnimationFrame(animate);
+    container.appendChild(fragment);
+    fragments.push({
+      element: fragment,
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 20,
+      vy: (Math.random() - 0.5) * 20,
+      size: size
+    });
   }
+  
+  // コンテナをページに追加
+  document.body.appendChild(container);
+  
+  // 爆発アニメーション
+  let startTime = performance.now();
+  const duration = 800; // 0.8秒
+  
+  function animate() {
+    const elapsed = performance.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // 各破片をアニメーション
+    fragments.forEach(fragment => {
+      fragment.x += fragment.vx * progress;
+      fragment.y += fragment.vy * progress;
+      
+      // 重力効果
+      fragment.y += 5 * progress * progress;
+      
+      // 透明度を変更
+      const opacity = 1 - progress;
+      
+      fragment.element.style.transform = `translate(${fragment.x - fragment.size/2}px, ${fragment.y - fragment.size/2}px)`;
+      fragment.element.style.opacity = opacity;
+    });
+    
+    // アニメーション終了条件
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // アニメーション終了時にコンテナを削除
+      container.remove();
+    }
+  }
+  
+  // アニメーション開始
+  requestAnimationFrame(animate);
 }
 
 // ツイートをブロックする関数
 function blockTweet(tweet, tweetText) {
   // 爆発エフェクトが有効な場合は表示
   if (showExplosionEffect) {
-    createExplosionEffect(tweet);
-    
-    // ツイートを非表示にする（エフェクト後に少し遅延）
-    setTimeout(() => {
+    try {
+      createExplosionEffect(tweet);
+      
+      // ツイートを非表示にする（エフェクト後に少し遅延）
+      setTimeout(() => {
+        tweet.style.display = 'none';
+        // 処理済みとしてマーク
+        tweet.dataset.filtered = 'true';
+        console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
+      }, 800); // 0.8秒後に非表示
+    } catch (error) {
+      // エフェクトに失敗した場合は通常の非表示処理
+      console.error('XKusoRepFilter: 爆発エフェクトの表示に失敗しました', error);
       tweet.style.display = 'none';
-      // 処理済みとしてマーク
       tweet.dataset.filtered = 'true';
-      console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
-    }, 500); // 0.5秒後に非表示
+    }
   } else {
     // エフェクトなしですぐに非表示
     tweet.style.display = 'none';
