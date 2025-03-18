@@ -4,6 +4,8 @@ let blockWordsList = ['しばらく観察していると'];
 let showConfirmDialog = true;
 // 確認済みのツイートIDを保存するセット
 let confirmedTweetIds = new Set();
+// 自分のIDとフォロワーのIDを保存するセット
+let myAndFollowersIds = new Set();
 
 // 設定を読み込む
 function loadSettings() {
@@ -21,15 +23,61 @@ function loadSettings() {
   });
 }
 
+// 自分のIDとフォロワーのIDを取得する関数
+function fetchMyAndFollowersIds() {
+  // 自分のプロフィールリンクを探す
+  const profileLinks = document.querySelectorAll('a[href^="/"][role="link"][aria-label]');
+  
+  profileLinks.forEach(link => {
+    const href = link.getAttribute('href');
+    if (href && href.startsWith('/') && !href.includes('/status/')) {
+      // 自分のIDを取得
+      const myId = href.replace('/', '');
+      if (myId && !myAndFollowersIds.has(myId)) {
+        myAndFollowersIds.add(myId);
+        console.log('XKusoRepFilter: 自分のIDを登録しました', myId);
+      }
+    }
+  });
+  
+  // フォロワーリストはページから直接取得するのは難しいため、
+  // タイムライン上でフォロー中のアカウントを検出します
+  const followingIndicators = document.querySelectorAll('span[data-testid="userFollowing"]');
+  
+  followingIndicators.forEach(indicator => {
+    // フォロー中のアカウントのツイート要素を探す
+    const tweet = indicator.closest('article[data-testid="tweet"]');
+    if (tweet) {
+      // ツイートからユーザーIDを取得
+      const userLinks = tweet.querySelectorAll('a[role="link"][href^="/"]');
+      userLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('/') && !href.includes('/status/')) {
+          const userId = href.replace('/', '');
+          if (userId && !myAndFollowersIds.has(userId)) {
+            myAndFollowersIds.add(userId);
+            console.log('XKusoRepFilter: フォロワーIDを登録しました', userId);
+          }
+        }
+      });
+    }
+  });
+}
+
 // 初期設定の読み込み
 loadSettings();
 
 // ストレージの変更を監視
 chrome.storage.onChanged.addListener(function(changes, namespace) {
-  if (namespace === 'sync' && changes.blockWords) {
+  if (namespace === 'sync' && (changes.blockWords || changes.showConfirmDialog)) {
     loadSettings();
   }
 });
+
+// 定期的に自分とフォロワーのIDを取得
+setInterval(fetchMyAndFollowersIds, 10000);
+// 初回実行
+fetchMyAndFollowersIds();
 
 // ツイートIDを取得する関数
 function getTweetId(tweet) {
@@ -110,6 +158,23 @@ function blockTweet(tweet, tweetText) {
   console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
 }
 
+// ツイートが自分またはフォロワーのものかチェックする関数
+function isMyOrFollowersTweet(tweet) {
+  // ツイートからユーザーIDを取得
+  const userLinks = tweet.querySelectorAll('a[role="link"][href^="/"]');
+  for (const link of userLinks) {
+    const href = link.getAttribute('href');
+    if (href && href.startsWith('/') && !href.includes('/status/')) {
+      const userId = href.replace('/', '');
+      // 自分またはフォロワーのIDかチェック
+      if (myAndFollowersIds.has(userId)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 // ツイートをフィルタリングする関数
 function filterTweets() {
   // タイムラインの各ツイート要素を取得
@@ -118,6 +183,12 @@ function filterTweets() {
   tweets.forEach(tweet => {
     // すでに処理済みの場合はスキップ
     if (tweet.dataset.filtered) return;
+    
+    // 自分またはフォロワーのツイートはブロックしない
+    if (isMyOrFollowersTweet(tweet)) {
+      tweet.dataset.filtered = 'skipped';
+      return;
+    }
     
     // ツイートのテキスト内容を取得
     const tweetText = tweet.textContent || '';
