@@ -220,6 +220,74 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
   tweet.appendChild(dialog);
 }
 
+// アニメーション用のスタイルを追加
+function addAnimationStyles() {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = `
+    @keyframes xkuso-fade-out {
+      0% { opacity: 1; transform: scale(1); filter: brightness(0.5); }
+      50% { opacity: 0.7; transform: scale(0.98); filter: brightness(0.3); }
+      100% { opacity: 0.5; transform: scale(0.95); filter: brightness(0.2); }
+    }
+    
+    @keyframes xkuso-shrink {
+      0% { max-height: 1000px; }
+      100% { max-height: 100px; }
+    }
+    
+    @keyframes xkuso-blur {
+      0% { filter: blur(0); }
+      100% { filter: blur(2px); }
+    }
+    
+    @keyframes xkuso-label-appear {
+      0% { transform: translateY(-20px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    
+    @keyframes xkuso-pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .xkuso-blocked-tweet {
+      animation: xkuso-fade-out 0.8s ease forwards, xkuso-shrink 1s ease forwards;
+      overflow: hidden;
+      position: relative;
+      pointer-events: none;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      background-color: rgba(0, 0, 0, 0.02);
+      transition: all 0.5s ease;
+    }
+    
+    .xkuso-blocked-tweet * {
+      animation: xkuso-blur 0.8s ease forwards;
+      transition: all 0.5s ease;
+      filter: grayscale(100%);
+    }
+    
+    .xkuso-block-label {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 2px 5px;
+      font-size: 10px;
+      text-align: center;
+      z-index: 999;
+      animation: xkuso-label-appear 0.5s ease 0.3s both, xkuso-pulse 2s ease infinite 1s;
+    }
+  `;
+  document.head.appendChild(styleElement);
+  console.log('XKusoRepFilter: アニメーションスタイルを追加しました');
+}
+
+// ページ読み込み時にアニメーションスタイルを追加
+addAnimationStyles();
+
 // ツイートをブロックする関数
 function blockTweet(tweet, tweetText) {
   try {
@@ -229,33 +297,18 @@ function blockTweet(tweet, tweetText) {
     // ツイートの元の高さを保存
     const originalHeight = tweet.offsetHeight;
     
-    // ツイートの内容は維持しながら、表示を20%に暗くする
-    tweet.style.filter = 'brightness(0.2)';
-    tweet.style.transition = 'filter 0.3s ease';
-    tweet.style.opacity = '0.8';
-    tweet.style.backgroundColor = 'rgba(0, 0, 0, 0.02)';
-    tweet.style.border = '1px solid rgba(0, 0, 0, 0.05)';
-    tweet.style.pointerEvents = 'none';
-    tweet.style.maxHeight = '100px';
-    tweet.style.overflow = 'hidden';
-    
-    // ツイート内のすべての要素にスタイルを適用
-    const allElements = tweet.querySelectorAll('*');
-    allElements.forEach(element => {
-      element.style.filter = 'grayscale(100%)';
-      element.style.transition = 'filter 0.3s ease';
-    });
-    
-    // ブロックラベルを追加
-    const blockLabel = document.createElement('div');
-    blockLabel.innerHTML = 'ブロックされたツイート';
-    blockLabel.style.cssText = 'position: absolute; top: 0; left: 0; right: 0; background-color: rgba(0, 0, 0, 0.7); color: white; padding: 2px 5px; font-size: 10px; text-align: center; z-index: 999;';
-    
     // 相対配置のための設定
     if (getComputedStyle(tweet).position === 'static') {
       tweet.style.position = 'relative';
     }
     
+    // アニメーションクラスを追加
+    tweet.classList.add('xkuso-blocked-tweet');
+    
+    // ブロックラベルを追加
+    const blockLabel = document.createElement('div');
+    blockLabel.innerHTML = 'ブロックされたツイート';
+    blockLabel.className = 'xkuso-block-label';
     tweet.appendChild(blockLabel);
     
     // クリックイベントを無効化
@@ -269,17 +322,51 @@ function blockTweet(tweet, tweetText) {
     tweet.addEventListener('mousedown', disableClicks, true);
     tweet.addEventListener('mouseup', disableClicks, true);
     
+    // エフェクト音を再生
+    playBlockSound();
+    
     // 処理済みとしてマーク
     tweet.dataset.filtered = 'true';
     tweet.dataset.originalContent = encodeURIComponent(tweetContent);
     
-    console.log('XKusoRepFilter: ツイートを20%の明るさに表示しました', tweetText);
+    console.log('XKusoRepFilter: ツイートをブロックし、アニメーションを適用しました', tweetText);
   } catch (error) {
     console.error('XKusoRepFilter: ツイートのスタイル変更中にエラーが発生しました', error);
     
     // エラーが発生した場合は当初の方法で非表示にする
     tweet.style.display = 'none';
     tweet.dataset.filtered = 'true';
+  }
+}
+
+// ブロック時のエフェクト音を再生する関数
+function playBlockSound() {
+  try {
+    // AudioContextを作成
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // オシレーターを作成
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    // オシレーターの設定
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
+    oscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.2); // A3
+    
+    // 音量の設定
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    
+    // 接続
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // 再生
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.2);
+  } catch (error) {
+    console.error('XKusoRepFilter: エフェクト音の再生中にエラーが発生しました', error);
   }
 }
 
