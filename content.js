@@ -2,6 +2,8 @@
 let blockWordsList = ['しばらく観察していると'];
 // 確認ダイアログを表示するかどうか
 let showConfirmDialog = true;
+// 爆発エフェクトを表示するかどうか
+let showExplosionEffect = false;
 // 確認済みのツイートIDを保存するセット
 let confirmedTweetIds = new Set();
 // 自分のIDとフォロワーのIDを保存するセット
@@ -12,7 +14,7 @@ let highlightedTweetIds = new Set();
 
 // 設定を読み込む
 function loadSettings() {
-  chrome.storage.sync.get(['blockWords', 'showConfirmDialog'], function(result) {
+  chrome.storage.sync.get(['blockWords', 'showConfirmDialog', 'showExplosionEffect'], function(result) {
     if (result.blockWords) {
       // 改行で分割して配列に変換
       blockWordsList = result.blockWords.split('\n').filter(word => word.trim() !== '');
@@ -22,6 +24,11 @@ function loadSettings() {
     if (result.showConfirmDialog !== undefined) {
       showConfirmDialog = result.showConfirmDialog;
       console.log('XKusoRepFilter: 確認ダイアログ設定を読み込みました', showConfirmDialog);
+    }
+    
+    if (result.showExplosionEffect !== undefined) {
+      showExplosionEffect = result.showExplosionEffect;
+      console.log('XKusoRepFilter: 爆発エフェクト設定を読み込みました', showExplosionEffect);
     }
   });
 }
@@ -72,7 +79,7 @@ loadSettings();
 
 // ストレージの変更を監視
 chrome.storage.onChanged.addListener(function(changes, namespace) {
-  if (namespace === 'sync' && (changes.blockWords || changes.showConfirmDialog)) {
+  if (namespace === 'sync' && (changes.blockWords || changes.showConfirmDialog || changes.showExplosionEffect)) {
     loadSettings();
   }
 });
@@ -235,16 +242,24 @@ function createExplosionEffect(tweet) {
 
 // ツイートをブロックする関数
 function blockTweet(tweet, tweetText) {
-  // 爆発エフェクトを表示
-  createExplosionEffect(tweet);
-  
-  // ツイートを非表示にする（エフェクト後に少し遅延）
-  setTimeout(() => {
+  // 爆発エフェクトが有効な場合は表示
+  if (showExplosionEffect) {
+    createExplosionEffect(tweet);
+    
+    // ツイートを非表示にする（エフェクト後に少し遅延）
+    setTimeout(() => {
+      tweet.style.display = 'none';
+      // 処理済みとしてマーク
+      tweet.dataset.filtered = 'true';
+      console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
+    }, 500); // 0.5秒後に非表示
+  } else {
+    // エフェクトなしですぐに非表示
     tweet.style.display = 'none';
     // 処理済みとしてマーク
     tweet.dataset.filtered = 'true';
     console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
-  }, 500); // 0.5秒後に非表示
+  }
 }
 
 // ツイートが自分またはフォロワーのものかチェックする関数
