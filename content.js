@@ -84,17 +84,27 @@ fetchMyAndFollowersIds();
 
 // ツイートIDを取得する関数
 function getTweetId(tweet) {
+  // すでにIDが設定されている場合はそれを返す
+  if (tweet.dataset.tweetId) {
+    return tweet.dataset.tweetId;
+  }
+  
   // ツイート要素からリンクを探す
   const links = tweet.querySelectorAll('a[href*="/status/"]');
   for (const link of links) {
     const href = link.getAttribute('href');
     const match = href.match(/\/status\/(\d+)/);
     if (match && match[1]) {
+      // IDをデータ属性に保存
+      tweet.dataset.tweetId = match[1];
       return match[1];
     }
   }
-  // IDが見つからない場合はユニークな文字列を生成
-  return 'tweet-' + Math.random().toString(36).substring(2, 15);
+  
+  // IDが見つからない場合はユニークな文字列を生成して保存
+  const uniqueId = 'tweet-' + Math.random().toString(36).substring(2, 15);
+  tweet.dataset.tweetId = uniqueId;
+  return uniqueId;
 }
 
 // 確認ダイアログを表示する関数
@@ -170,52 +180,87 @@ function isMyOrFollowersTweet(tweet) {
 
 // ツイート内の特定の文字列をハイライトする関数
 function highlightBlockWords(tweet, matchedWord) {
-  // すでにハイライト済みの場合はスキップ
-  const tweetId = getTweetId(tweet);
-  if (highlightedTweetIds.has(tweetId)) return;
-  
-  // テキストノードを探す
-  const textNodes = [];
-  const walker = document.createTreeWalker(tweet, NodeFilter.SHOW_TEXT, null, false);
-  let node;
-  while (node = walker.nextNode()) {
-    if (node.textContent.includes(matchedWord)) {
-      textNodes.push(node);
-    }
-  }
-  
-  // テキストノード内のマッチした文字列をハイライト
-  textNodes.forEach(textNode => {
-    const text = textNode.textContent;
-    const parts = text.split(matchedWord);
+  try {
+    // すでにハイライト済みの場合はスキップ
+    const tweetId = getTweetId(tweet);
+    if (highlightedTweetIds.has(tweetId)) return;
     
-    if (parts.length > 1) {
-      const fragment = document.createDocumentFragment();
+    // 先にハイライト済みとしてマークしておく（重複処理防止）
+    highlightedTweetIds.add(tweetId);
+    
+    // テキストノードを探す
+    const textNodes = [];
+    const walker = document.createTreeWalker(tweet, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    while (node = walker.nextNode()) {
+      if (node.textContent && node.textContent.includes(matchedWord)) {
+        textNodes.push(node);
+      }
+    }
+    
+    // テキストノードが見つからない場合は、全体を再スキャン
+    if (textNodes.length === 0) {
+      // ツイートの内容が変わった可能性があるため、少し待ってから再試行
+      setTimeout(() => {
+        const walker = document.createTreeWalker(tweet, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while (node = walker.nextNode()) {
+          if (node.textContent && node.textContent.includes(matchedWord)) {
+            textNodes.push(node);
+          }
+        }
+        processTextNodes(textNodes, matchedWord);
+      }, 500);
+    } else {
+      processTextNodes(textNodes, matchedWord);
+    }
+  } catch (error) {
+    console.error('XKusoRepFilter: ハイライト処理中にエラーが発生しました', error);
+  }
+}
+  
+// テキストノードを処理する関数
+function processTextNodes(textNodes, matchedWord) {
+  if (!textNodes || textNodes.length === 0) return;
+  
+  textNodes.forEach(textNode => {
+    try {
+      // テキストノードがドキュメントに存在しない場合はスキップ
+      if (!textNode.parentNode) return;
       
-      for (let i = 0; i < parts.length; i++) {
-        // 通常のテキスト部分を追加
-        if (parts[i]) {
-          fragment.appendChild(document.createTextNode(parts[i]));
+      const text = textNode.textContent;
+      if (!text || !text.includes(matchedWord)) return;
+      
+      const parts = text.split(matchedWord);
+      
+      if (parts.length > 1) {
+        const fragment = document.createDocumentFragment();
+        
+        for (let i = 0; i < parts.length; i++) {
+          // 通常のテキスト部分を追加
+          if (parts[i]) {
+            fragment.appendChild(document.createTextNode(parts[i]));
+          }
+          
+          // マッチした文字列をハイライトして追加
+          if (i < parts.length - 1) {
+            const highlight = document.createElement('span');
+            highlight.textContent = matchedWord;
+            highlight.style.backgroundColor = 'yellow';
+            highlight.style.color = 'red';
+            highlight.style.fontWeight = 'bold';
+            highlight.className = 'xkuso-highlight';
+            fragment.appendChild(highlight);
+          }
         }
         
-        // マッチした文字列をハイライトして追加
-        if (i < parts.length - 1) {
-          const highlight = document.createElement('span');
-          highlight.textContent = matchedWord;
-          highlight.style.backgroundColor = 'yellow';
-          highlight.style.color = 'red';
-          highlight.style.fontWeight = 'bold';
-          fragment.appendChild(highlight);
-        }
+        // 元のテキストノードをハイライト付きのフラグメントで置き換え
+        textNode.parentNode.replaceChild(fragment, textNode);
       }
-      
-      // 元のテキストノードをハイライト付きのフラグメントで置き換え
-      textNode.parentNode.replaceChild(fragment, textNode);
+    } catch (error) {
+      console.error('XKusoRepFilter: テキストノード処理中にエラーが発生しました', error);
     }
   });
-  
-  // ハイライト済みとしてマーク
-  highlightedTweetIds.add(tweetId);
 }
 
 // ツイートをフィルタリングする関数
