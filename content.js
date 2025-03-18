@@ -2,8 +2,6 @@
 let blockWordsList = ['しばらく観察していると'];
 // 確認ダイアログを表示するかどうか
 let showConfirmDialog = true;
-// 爆発エフェクトを表示するかどうか
-let showExplosionEffect = false;
 // 確認済みのツイートIDを保存するセット
 let confirmedTweetIds = new Set();
 // 自分のIDとフォロワーのIDを保存するセット
@@ -14,7 +12,7 @@ let highlightedTweetIds = new Set();
 
 // 設定を読み込む
 function loadSettings() {
-  chrome.storage.sync.get(['blockWords', 'showConfirmDialog', 'showExplosionEffect'], function(result) {
+  chrome.storage.sync.get(['blockWords', 'showConfirmDialog'], function(result) {
     if (result.blockWords) {
       // 改行で分割して配列に変換
       blockWordsList = result.blockWords.split('\n').filter(word => word.trim() !== '');
@@ -24,11 +22,6 @@ function loadSettings() {
     if (result.showConfirmDialog !== undefined) {
       showConfirmDialog = result.showConfirmDialog;
       console.log('XKusoRepFilter: 確認ダイアログ設定を読み込みました', showConfirmDialog);
-    }
-    
-    if (result.showExplosionEffect !== undefined) {
-      showExplosionEffect = result.showExplosionEffect;
-      console.log('XKusoRepFilter: 爆発エフェクト設定を読み込みました', showExplosionEffect);
     }
   });
 }
@@ -79,7 +72,7 @@ loadSettings();
 
 // ストレージの変更を監視
 chrome.storage.onChanged.addListener(function(changes, namespace) {
-  if (namespace === 'sync' && (changes.blockWords || changes.showConfirmDialog || changes.showExplosionEffect)) {
+  if (namespace === 'sync' && (changes.blockWords || changes.showConfirmDialog)) {
     loadSettings();
   }
 });
@@ -190,112 +183,15 @@ function showBlockConfirmation(tweet, tweetText, matchedWord) {
   tweet.appendChild(dialog);
 }
 
-// 爆発エフェクトを表示する関数
-function createExplosionEffect(tweet) {
-  // ツイートの位置とサイズを取得
-  const rect = tweet.getBoundingClientRect();
-  
-  // エフェクトコンテナを作成
-  const container = document.createElement('div');
-  container.className = 'xkuso-explosion-container';
-  container.style.cssText = `
-    position: fixed;
-    left: ${rect.left}px;
-    top: ${rect.top}px;
-    width: ${rect.width}px;
-    height: ${rect.height}px;
-    z-index: 10000;
-    overflow: hidden;
-    pointer-events: none;
-  `;
-  
-  // 破片の数を減らし、軽量化
-  const fragmentCount = 10; // 20から10に削減
-  const colors = ['#ff0000', '#ff7700', '#ffff00', '#ff9900', '#ff5500'];
-  
-  // CSSアニメーションを使用してパフォーマンスを改善
-  for (let i = 0; i < fragmentCount; i++) {
-    const fragment = document.createElement('div');
-    const size = Math.random() * 15 + 5; // サイズを小さく
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    
-    // ランダムな初期位置
-    const startX = rect.width / 2;
-    const startY = rect.height / 2;
-    
-    // ランダムな終了位置
-    const endX = startX + (Math.random() - 0.5) * rect.width * 1.5;
-    const endY = startY + (Math.random() - 0.5) * rect.height * 1.5;
-    
-    // CSSアニメーションを適用
-    fragment.style.cssText = `
-      position: absolute;
-      width: ${size}px;
-      height: ${size}px;
-      background-color: ${color};
-      left: ${startX}px;
-      top: ${startY}px;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      animation: explosion-particle 600ms ease-out forwards;
-    `;
-    
-    // インラインスタイルでアニメーションを定義
-    const styleSheet = document.createElement('style');
-    styleSheet.textContent = `
-      @keyframes explosion-particle {
-        0% {
-          transform: translate(-50%, -50%);
-          opacity: 1;
-        }
-        100% {
-          transform: translate(${endX - startX}px, ${endY - startY}px);
-          opacity: 0;
-        }
-      }
-    `;
-    
-    // スタイルと破片を追加
-    container.appendChild(styleSheet);
-    container.appendChild(fragment);
-  }
-  
-  // コンテナをページに追加
-  document.body.appendChild(container);
-  
-  // アニメーション終了後にコンテナを削除
-  setTimeout(() => {
-    container.remove();
-  }, 600); // 0.6秒後に削除
-}
+
 
 // ツイートをブロックする関数
 function blockTweet(tweet, tweetText) {
-  // 爆発エフェクトが有効な場合は表示
-  if (showExplosionEffect) {
-    try {
-      createExplosionEffect(tweet);
-      
-      // ツイートを非表示にする（エフェクト後に少し遅延）
-      setTimeout(() => {
-        tweet.style.display = 'none';
-        // 処理済みとしてマーク
-        tweet.dataset.filtered = 'true';
-        console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
-      }, 600); // 0.6秒後に非表示（エフェクトの時間に合わせて短縮）
-    } catch (error) {
-      // エフェクトに失敗した場合は通常の非表示処理
-      console.error('XKusoRepFilter: 爆発エフェクトの表示に失敗しました', error);
-      tweet.style.display = 'none';
-      tweet.dataset.filtered = 'true';
-    }
-  } else {
-    // エフェクトなしですぐに非表示
-    tweet.style.display = 'none';
-    // 処理済みとしてマーク
-    tweet.dataset.filtered = 'true';
-    console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
-  }
+  // ツイートを非表示
+  tweet.style.display = 'none';
+  // 処理済みとしてマーク
+  tweet.dataset.filtered = 'true';
+  console.log('XKusoRepFilter: ツイートをブロックしました', tweetText);
 }
 
 // ツイートが自分またはフォロワーのものかチェックする関数
