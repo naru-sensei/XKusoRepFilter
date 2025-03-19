@@ -24,7 +24,7 @@ jobs:
     - name: 依存関係のインストール
       run: |
         npm init -y
-        npm install --save-dev eslint
+        npm install --save-dev eslint@8.57.0
 
     - name: 静的解析の実行
       run: |
@@ -47,7 +47,7 @@ jobs:
     - name: 依存関係のインストール
       run: |
         npm init -y
-        npm install --save-dev @babel/core @babel/preset-env babel-loader webpack webpack-cli zip-webpack-plugin clean-webpack-plugin copy-webpack-plugin eslint
+        npm install --save-dev @babel/core @babel/preset-env babel-loader webpack webpack-cli zip-webpack-plugin clean-webpack-plugin copy-webpack-plugin eslint@8.57.0
 
     - name: webpackの設定ファイル作成
       run: |
