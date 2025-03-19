@@ -11,6 +11,20 @@ let confirmedTweetIds = new Set();
 // 自分のIDとフォロワーのIDを保存するセット
 let myAndFollowersIds = new Set();
 
+// ディストーションの設定（バキッとした音にするため）
+function makeDistortionCurve(amount) {
+  const k = typeof amount === 'number' ? amount : 50;
+  const nSamples = 44100;
+  const curve = new Float32Array(nSamples);
+  const deg = Math.PI / 180;
+  
+  for (let i = 0; i < nSamples; ++i) {
+    const x = (i * 2) / nSamples - 1;
+    curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+  }
+  return curve;
+}
+
 
 // 設定を読み込む
 function loadSettings() {
@@ -404,18 +418,6 @@ function playBlockSound() {
     const distortion = audioContext.createWaveShaper();
     
     // ディストーションの設定（バキッとした音にするため）
-    function makeDistortionCurve(amount) {
-      const k = typeof amount === 'number' ? amount : 50;
-      const n_samples = 44100;
-      const curve = new Float32Array(n_samples);
-      const deg = Math.PI / 180;
-      
-      for (let i = 0; i < n_samples; ++i) {
-        const x = (i * 2) / n_samples - 1;
-        curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
-      }
-      return curve;
-    }
     
     distortion.curve = makeDistortionCurve(400);
     distortion.oversample = '4x';
