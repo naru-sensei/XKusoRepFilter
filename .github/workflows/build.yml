@@ -9,7 +9,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,7 +24,30 @@ jobs:
     - name: 依存関係のインストール
       run: |
         npm init -y
-        npm install --save-dev @babel/core @babel/preset-env babel-loader webpack webpack-cli zip-webpack-plugin clean-webpack-plugin copy-webpack-plugin
+        npm install --save-dev eslint
+
+    - name: 静的解析の実行
+      run: |
+        echo '開始：JavaScriptファイルの静的解析'
+        npx eslint . --ext .js
+
+  build:
+    needs: lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Node.jsのセットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: 依存関係のインストール
+      run: |
+        npm init -y
+        npm install --save-dev @babel/core @babel/preset-env babel-loader webpack webpack-cli zip-webpack-plugin clean-webpack-plugin copy-webpack-plugin eslint
 
     - name: webpackの設定ファイル作成
       run: |
