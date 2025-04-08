@@ -1,0 +1,10 @@
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#1d9bf0" />
+  
+  <!-- Filter symbol (funnel) -->
+  <path d="M96 32H32L56 64V96L72 88V64L96 32Z" fill="white" stroke="#0f5885" stroke-width="4" />
+  
+  <!-- X symbol -->
+  <path d="M40 40L88 88M88 40L40 88" stroke="#0f5885" stroke-width="6" stroke-linecap="round" />
+</svg>
