@@ -2,11 +2,14 @@ document.addEventListener('DOMContentLoaded', function() {
   // デフォルト値を設定
   const defaultBlockWords = 'しばらく観察していると\n紹介したこのブロガー\n彼の指導のもと';
   const defaultShowConfirmDialog = true;
+  const defaultFilterMode = 'block';
 
   
   // UI要素
   const blockWordsTextarea = document.getElementById('blockWords');
   const showConfirmDialogCheckbox = document.getElementById('showConfirmDialog');
+  const blockModeRadio = document.getElementById('blockMode');
+  const showOnlyModeRadio = document.getElementById('showOnlyMode');
 
   const saveButton = document.getElementById('saveButton');
   const statusMessage = document.getElementById('status');
@@ -25,12 +28,19 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   // 保存されている設定を読み込む
-  chrome.storage.sync.get(['blockWords', 'showConfirmDialog'], function(result) {
+  chrome.storage.sync.get(['blockWords', 'showConfirmDialog', 'filterMode'], function(result) {
     const blockWords = result.blockWords || defaultBlockWords;
     blockWordsTextarea.value = blockWords;
     
     const showConfirmDialog = result.showConfirmDialog !== undefined ? result.showConfirmDialog : defaultShowConfirmDialog;
     showConfirmDialogCheckbox.checked = showConfirmDialog;
+    
+    const filterMode = result.filterMode || defaultFilterMode;
+    if (filterMode === 'block') {
+      blockModeRadio.checked = true;
+    } else if (filterMode === 'showOnly') {
+      showOnlyModeRadio.checked = true;
+    }
     
 
     
@@ -55,12 +65,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const blockWords = blockWordsTextarea.value;
     const showConfirmDialog = showConfirmDialogCheckbox.checked;
+    const filterMode = blockModeRadio.checked ? 'block' : 'showOnly';
 
     
     // 設定を保存
     chrome.storage.sync.set({
       blockWords: blockWords,
-      showConfirmDialog: showConfirmDialog
+      showConfirmDialog: showConfirmDialog,
+      filterMode: filterMode
     }, function() {
       // 保存完了メッセージを表示
       statusMessage.style.display = 'block';
