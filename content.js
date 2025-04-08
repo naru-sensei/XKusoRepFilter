@@ -4,6 +4,23 @@ let blockWordsList = [
   '紹介したこのブロガー',
   '彼の指導のもと'
 ];
+
+let investmentSpamWordsList = [
+  'しばらく観察していると',
+  '毎日急騰している銘柄',
+  '万円稼ぎました',
+  '万円の利益',
+  '資産を増やせる',
+  '彼の勧める銘柄',
+  '同じ株を買って',
+  'フォローした後',
+  '推奨する株',
+  'ありがとうございます',
+  '儲かりました'
+];
+
+let showOnlyInvestmentSpam = false;
+
 // 確認ダイアログを表示するかどうか
 let showConfirmDialog = true;
 // 確認済みのツイートIDを保存するセット
@@ -28,7 +45,7 @@ function makeDistortionCurve(amount) {
 
 // 設定を読み込む
 function loadSettings() {
-  chrome.storage.sync.get(['blockWords', 'showConfirmDialog'], function(result) {
+  chrome.storage.sync.get(['blockWords', 'showConfirmDialog', 'showOnlyInvestmentSpam'], function(result) {
     if (result.blockWords) {
       // 改行で分割して配列に変換
       blockWordsList = result.blockWords.split('\n').filter(word => word.trim() !== '');
@@ -38,6 +55,11 @@ function loadSettings() {
     if (result.showConfirmDialog !== undefined) {
       showConfirmDialog = result.showConfirmDialog;
       console.log('XKusoRepFilter: 確認ダイアログ設定を読み込みました', showConfirmDialog);
+    }
+
+    if (result.showOnlyInvestmentSpam !== undefined) {
+      showOnlyInvestmentSpam = result.showOnlyInvestmentSpam;
+      console.log('XKusoRepFilter: 投資スパム表示設定を読み込みました', showOnlyInvestmentSpam);
     }
   });
 }
@@ -620,6 +642,26 @@ function filterTweets() {
     // ツイートのテキスト内容を取得
     const tweetText = tweet.textContent || '';
     
+    if (showOnlyInvestmentSpam) {
+      let isInvestmentSpam = false;
+      for (const word of investmentSpamWordsList) {
+        if (tweetText.includes(word)) {
+          isInvestmentSpam = true;
+          break;
+        }
+      }
+      
+      if (!isInvestmentSpam) {
+        tweet.style.display = 'none';
+        tweet.dataset.filtered = 'hidden';
+      } else {
+        tweet.style.display = '';
+        tweet.dataset.filtered = 'shown';
+      }
+      
+      return;
+    }
+    
     // ブロックワードが含まれているかチェック
     let matchedWord = null;
     for (const word of blockWordsList) {
@@ -647,7 +689,6 @@ function filterTweets() {
         }
       }
     }
-
   });
 }
 
