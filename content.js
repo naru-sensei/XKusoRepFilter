@@ -6,6 +6,7 @@ let blockWordsList = [
 ];
 // 確認ダイアログを表示するかどうか
 let showConfirmDialog = true;
+let filterMode = 'block';
 // 確認済みのツイートIDを保存するセット
 let confirmedTweetIds = new Set();
 // 自分のIDとフォロワーのIDを保存するセット
@@ -28,7 +29,7 @@ function makeDistortionCurve(amount) {
 
 // 設定を読み込む
 function loadSettings() {
-  chrome.storage.sync.get(['blockWords', 'showConfirmDialog'], function(result) {
+  chrome.storage.sync.get(['blockWords', 'showConfirmDialog', 'filterMode'], function(result) {
     if (result.blockWords) {
       // 改行で分割して配列に変換
       blockWordsList = result.blockWords.split('\n').filter(word => word.trim() !== '');
@@ -38,6 +39,11 @@ function loadSettings() {
     if (result.showConfirmDialog !== undefined) {
       showConfirmDialog = result.showConfirmDialog;
       console.log('XKusoRepFilter: 確認ダイアログ設定を読み込みました', showConfirmDialog);
+    }
+    
+    if (result.filterMode !== undefined) {
+      filterMode = result.filterMode;
+      console.log('XKusoRepFilter: フィルターモード設定を読み込みました', filterMode);
     }
   });
 }
@@ -88,7 +94,7 @@ loadSettings();
 
 // ストレージの変更を監視
 chrome.storage.onChanged.addListener(function(changes, namespace) {
-  if (namespace === 'sync' && (changes.blockWords || changes.showConfirmDialog)) {
+  if (namespace === 'sync' && (changes.blockWords || changes.showConfirmDialog || changes.filterMode)) {
     loadSettings();
   }
 });
@@ -608,14 +614,53 @@ function isVerifiedAccount(tweet) {
 }
 
 
+function showTweet(tweet) {
+  // すでに処理済みの場合はスキップ
+  if (tweet.dataset.filtered === 'shown') return;
+  
+  tweet.dataset.filtered = 'shown';
+  
+  tweet.style.border = '2px solid #1d9bf0';
+  tweet.style.boxShadow = '0 0 10px rgba(29, 155, 240, 0.5)';
+  tweet.style.position = 'relative';
+  
+  const spamLabel = document.createElement('div');
+  spamLabel.innerHTML = 'スパム投稿';
+  spamLabel.className = 'xkuso-spam-label';
+  spamLabel.style.position = 'absolute';
+  spamLabel.style.top = '0';
+  spamLabel.style.right = '0';
+  spamLabel.style.backgroundColor = '#1d9bf0';
+  spamLabel.style.color = 'white';
+  spamLabel.style.padding = '2px 5px';
+  spamLabel.style.fontSize = '10px';
+  spamLabel.style.borderRadius = '0 0 0 4px';
+  spamLabel.style.zIndex = '999';
+  tweet.appendChild(spamLabel);
+  
+  console.log('XKusoRepFilter: スパム投稿を表示しました');
+}
+
+function hideTweet(tweet) {
+  // すでに処理済みの場合はスキップ
+  if (tweet.dataset.filtered === 'hidden') return;
+  
+  tweet.dataset.filtered = 'hidden';
+  
+  tweet.style.display = 'none';
+  
+  console.log('XKusoRepFilter: 非スパム投稿を非表示にしました');
+}
+
 // ツイートをフィルタリングする関数
 function filterTweets() {
   // タイムラインの各ツイート要素を取得
   const tweets = document.querySelectorAll('article[data-testid="tweet"]');
   
   tweets.forEach(tweet => {
-    // すでに処理済みの場合はスキップ
-    if (tweet.dataset.filtered) return;
+    if (tweet.dataset.filtered && tweet.dataset.filterMode === filterMode) return;
+    
+    tweet.dataset.filterMode = filterMode;
     
     // ツイートのテキスト内容を取得
     const tweetText = tweet.textContent || '';
@@ -629,15 +674,10 @@ function filterTweets() {
       }
     }
     
-    if (matchedWord) {
-      // 自分、フォロワー、または認証済みアカウントのツイートはブロックしない
-      if (isMyOrFollowersTweet(tweet) || isVerifiedAccount(tweet)) {
-        tweet.dataset.filtered = 'skipped';
-        if (isVerifiedAccount(tweet)) {
-          console.log('XKusoRepFilter: 認証済みアカウントのツイートをスキップしました');
-        }
-      } else {
-        // 自分、フォロワー、認証済みアカウント以外のツイートはブロック対象
+    const isSpecialTweet = isMyOrFollowersTweet(tweet) || isVerifiedAccount(tweet);
+    
+    if (filterMode === 'block') {
+      if (matchedWord && !isSpecialTweet) {
         if (showConfirmDialog) {
           // 確認ダイアログを表示
           showBlockConfirmation(tweet, tweetText, matchedWord);
@@ -645,9 +685,19 @@ function filterTweets() {
           // 確認なしでブロック
           blockTweet(tweet, tweetText);
         }
+      } else if (isSpecialTweet && matchedWord) {
+        tweet.dataset.filtered = 'skipped';
+        if (isVerifiedAccount(tweet)) {
+          console.log('XKusoRepFilter: 認証済みアカウントのツイートをスキップしました');
+        }
+      }
+    } else if (filterMode === 'showOnly') {
+      if (matchedWord) {
+        showTweet(tweet);
+      } else {
+        hideTweet(tweet);
       }
     }
-
   });
 }
 
